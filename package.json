@@ -1,0 +1,49 @@
+{
+  "name": "goszakup-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint"
+    }
+  },
+  "scripts": {
+    "dev": "npx nodemon",
+    "build": "rimraf ./build && npx tsc",
+    "start": "npm run build && node build/index",
+    "lint": "npx eslint ./src",
+    "format": "npx eslint ./src --fix"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@telegraf/types": "^7.0.0",
+    "@types/bull": "^4.10.0",
+    "@types/mongodb": "^4.0.7",
+    "@types/mongoose": "^5.11.97",
+    "@types/node": "^20.11.16",
+    "@types/node-cron": "^3.0.11",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "axios": "^1.6.7",
+    "cheerio": "^1.0.0-rc.12",
+    "eslint": "^8.56.0",
+    "husky": "^9.0.10",
+    "mongoose": "^8.1.1",
+    "nodemon": "^3.0.3",
+    "prettier": "^3.2.5",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "bull": "^4.12.2",
+    "date-format": "^4.0.14",
+    "mongodb": "^6.3.0",
+    "node-cron": "^3.0.3",
+    "telegraf": "^4.15.3"
+  }
+}
