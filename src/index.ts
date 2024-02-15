@@ -1,4 +1,3 @@
-import { error } from 'console';
 import { initDatabase } from './db/init-database.js';
 import { Config, Links } from './domains/config/index.js';
 import { Link } from './domains/links/index.js';
@@ -8,10 +7,7 @@ import { parsePostQueue } from './domains/queues/parse-post-queue.js';
 import { sendTelegramMessageQueue } from './domains/queues/send-telegram-message-queue.js';
 import { TelegramBot } from './domains/telegram-bot/index.js';
 import cron from 'node-cron';
-import { TLink } from './data/Link/index.js';
 import { UserData } from './data/User/index.js';
-import { message } from 'telegraf/filters';
-import { PostData, PostType } from './data/Post/index.js';
 
 const start = async (): Promise<void> => {
   sendTelegramMessageQueue.process('send-telegram-message-queue', async (job, done) => {
@@ -99,12 +95,12 @@ const start = async (): Promise<void> => {
   bot.init();
 
   // Schedule the task to run every 1 minute
-  // cron.schedule('*/1 * * * *', async () => {
-  //   await Links.map(async (data) => {
-  //     Post.addToParselinksQueue(data.url);
-  //   });
-  //   await Post.parsePosts();
-  // });
+  cron.schedule('*/1 * * * *', async () => {
+    await Links.map(async (data) => {
+      Post.addToParselinksQueue(data.url);
+    });
+    await Post.parsePosts();
+  });
 };
 
 initDatabase({ main: true }).then(start);

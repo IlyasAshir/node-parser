@@ -45,6 +45,8 @@ export const Config: TConfig = {
 
 export const Links: Array<TLink> = [{ url: 'https://www.goszakup.gov.kz/ru/search/announce' }];
 
+
+//js path для парсинга данных 
 export const Elements: TElement = {
   tenderNumber:
     '#main-wrapper > div.content-block > div.panel.panel-default > div.panel-body > div.row > div:nth-child(1) > div:nth-child(1) > div > input',
