@@ -7,6 +7,11 @@ export const httpsAgent = new https.Agent({
 type TConfig = {
   mainMongoConnectionUrl: string;
   telegramApiToken: string;
+  redisUrl: string;
+};
+
+type TLink = {
+  url: string;
 };
 
 export type UrlsType = { url: string };
@@ -35,7 +40,10 @@ export type TElement = {
 export const Config: TConfig = {
   mainMongoConnectionUrl: 'mongodb+srv://iashir:Forgespirit05@cluster0.gq78ifm.mongodb.net/',
   telegramApiToken: '6831508154:AAG2S-nQzAbsSJEXfoVSK6Cf0gW23APoOU4',
+  redisUrl: '127.0.0.1:6379',
 };
+
+export const Links: Array<TLink> = [{ url: 'https://www.goszakup.gov.kz/ru/search/announce' }];
 
 export const Elements: TElement = {
   tenderNumber:

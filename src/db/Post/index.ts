@@ -11,6 +11,7 @@ export interface Post extends Document {
   applicationStartDate: Date;
   applicationEndDate: Date;
   link: string;
+  
 }
 
 const PostSchema = new Schema<Post>(

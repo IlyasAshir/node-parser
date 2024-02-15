@@ -1,13 +1,15 @@
 import { Post } from '../post/index.js';
-import { PostData, PostType, UserData } from '../../data/index.js';
+import { PostData, PostType } from '../../data/Post/index.js';
+import { UserData } from '../../data/User/index.js';
 import { Telegraf } from 'telegraf';
-import { ParsingObj } from '../config/index.js';
+import { Config, Links, ParsingObj } from '../config/index.js';
 import { link } from 'node:fs';
+import { sendTelegramMessageQueue } from '../queues/send-telegram-message-queue.js';
+import { parseLinkQueue } from '../queues/parse-link-queue.js';
 
 export type TelegramBotSendMessageOptionsType = {
-  telegramApiToken: string;
-  chatId: string | number;
-  message: string;
+  chatId: string;
+  message: PostType;
 };
 
 export class TelegramBot {
@@ -19,8 +21,9 @@ export class TelegramBot {
     this.post = new Post();
     this.bot.telegram
       .setMyCommands([
-        { command: '/start', description: 'Запустить бот' },
-        { command: '/get_data', description: 'последнии 50 постов' },
+        { command: '/get_data', description: 'Получть послении обьявления' },
+        { command: '/help', description: 'Помощь' },
+        { command: '/end', description: 'Отключить бот' },
       ])
       .then(() => {
         console.log('Commands set sucessfully');
@@ -69,7 +72,10 @@ export class TelegramBot {
     // Start command handler
     this.bot.start(async (ctx) => {
       try {
-        await ctx.reply('Добро пожаловать, ');
+        await ctx.replyWithMarkdown(
+          'Добро пожаловать, здесь вы можете получать ___уведелмления___ о новых тендерах по ***категориям*** и ___поиск___ по ***категориям***.',
+        );
+        await ctx.replyWithMarkdown('***Категории***: по ___областям___, ___цене___ и ___ключевым словам___.');
         const data = await UserData.saveNewUser(ctx.message.chat.id.toString(), ctx.message.from.username!);
         console.log(data);
       } catch (err) {
@@ -83,10 +89,23 @@ export class TelegramBot {
         await ctx.reply('Fetching data.....');
         const data = await post.getPosts();
         data.forEach((obj) => {
-          ctx.reply(
-            ` Номер объявления: ${obj.tenderNumber}\n Наименование объявления: ${obj.tenderName}\n Статус объявления: ${obj.tenderStatus}\n Дата публикации объявления: ${obj.publicationDate}\n Срок начала обсуждения: ${obj.applicationStartDate}\n Срок окончания обсуждения: ${obj.applicationEndDate}\n Ссылка: ${obj.link}`,
-          );
+          this.addToMessageQueue(ctx.chat.id.toString(), obj);
+
+          // ctx.reply(
+          //   ` Номер объявления: ${obj.tenderNumber}\n Наименование объявления: ${obj.tenderName}\n Статус объявления: ${obj.tenderStatus}\n Дата публикации объявления: ${obj.publicationDate}\n Срок начала обсуждения: ${obj.applicationStartDate}\n Срок окончания обсуждения: ${obj.applicationEndDate}\n Ссылка: ${obj.link}`,
+          // );
         });
+      } catch (err) {
+        console.error(`Error while fetching data: ${err}`);
+        ctx.reply('Error fetching data. Please try again later.');
+      }
+    });
+
+    this.bot.hears('/help', async (ctx) => {
+      try {
+        await ctx.reply(
+          '/get_data - введите сколько последних обьявлений вы хотите получить (1-50)\n/set_search_filtres - поключить фильтры для поиска\n/set_notification_filtres - поключить фильтры для получения обьявлений',
+        );
       } catch (err) {
         console.error(`Error while fetching data: ${err}`);
         ctx.reply('Error fetching data. Please try again later.');
@@ -101,47 +120,27 @@ export class TelegramBot {
     process.once('SIGTERM', () => this.bot.stop('SIGTERM'));
   }
 
+  public async addToMessageQueue(chatId: string, message: PostType) {
+    try {
+      await sendTelegramMessageQueue.add('send-telegram-message-queue', { chatId, message });
+    } catch (error) {
+      console.error(`Error adding message to the queue: chat ID(${chatId}) tender ID(${message.tenderNumber})`);
+      throw error; // Propagate the error to handle it elsewhere
+    }
+  }
+
+  public static async sendMessagesToUsers(options: TelegramBotSendMessageOptionsType) {
+    const bot = new Telegraf(Config.telegramApiToken);
+
+    return bot.telegram.sendMessage(
+      options.chatId,
+      `*Номер объявления:*\n_${options.message.tenderNumber}_\n*Наименование объявления:*\n_${options.message.tenderName}_\n*Статус объявления:*\n_${options.message.tenderStatus}_\n*Дата публикации объявления:*\n_${options.message.publicationDate.toLocaleString('en-GB')}_\n*Дата начала объявления:*\n_${options.message.applicationStartDate.toLocaleString('en-GB')}_\n*Срок окончания обсуждения*:\n_${options.message.applicationEndDate.toLocaleString('en-GB')}_\n*Ссылка:*\n${options.message.link}`,
+      { parse_mode: 'Markdown' },
+    );
+  }
+
   public async getPosts() {
     this.post.getPosts();
     console.log(this.post);
-  }
-
-  public async refreshPosts() {
-    try {
-      const links = await this.post.parseLinks();
-      const newPosts = await this.post.parsePosts(links);
-      if (newPosts.length > 0) {
-        const newData = await this.post.getNewPosts();
-
-        if (newData) {
-          console.log(`refresh posts func --- ${newData}`);
-          this.sendMessagesToUsers(newData);
-        }
-      } else {
-        console.log(`refreshPosts func: no new posts found`);
-      }
-    } catch (error) {
-      console.error('Error refreshing posts:', error);
-    }
-  }
-
-  public async sendMessagesToUsers(data: PostType[]) {
-    try {
-      console.log(data);
-      // Get a list of user IDs from your database or any other data source
-      // Send a message to each user
-      data.map((post) => {
-        UserData.getUsers().then((users) => {
-          for (const user of users) {
-            this.bot.telegram.sendMessage(
-              user.userID,
-              ` Номер объявления: ${post.tenderNumber}\n  Наименование объявления: ${post.tenderName}\n Статус объявления: ${post.tenderStatus}\n  Дата публикации объявления: ${post.publicationDate}\n  Срок начала обсуждения: ${post.applicationStartDate}\n  Срок окончания обсуждения: ${post.applicationEndDate}\n Ссылка: ${post.link}}`,
-            );
-          }
-        });
-      });
-    } catch (error) {
-      console.error('Error sending messages to users:', error);
-    }
   }
 }

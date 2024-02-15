@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
-import { Post, PostModel } from '../db/Post/index.js';
-import { UserModel, User } from '../db/Users/index.js';
+import { Post, PostModel } from '../../db/Post/index.js';
+import { UserModel, User } from '../../db/Users/index.js';
 
 export type PostType = {
   tenderNumber: string;
@@ -42,7 +42,7 @@ export class PostData {
   }
 
   public static async getAllPosts(): Promise<Post[]> {
-    return PostModel.find().limit(20);
+    return PostModel.find().limit(5);
   }
 
   public static async findByStatus(status: FindByStatusType): Promise<Post[]> {
@@ -72,32 +72,6 @@ export class PostData {
       throw new Error(`Error checking for new items`);
     }
     // return PostModel.find({ createdAt: { $gt: date } });
-  }
-}
-export type TUser = {
-  userID: string;
-  userName: string;
-};
-export class UserData {
-  public static async saveNewUser(userID: string, userName: string): Promise<User> {
-    try {
-      // Create a new user document
-      const newUser = new UserModel({
-        userID,
-        userName,
-      });
-
-      // Save the new user to the database
-      const savedUser = await newUser.save();
-
-      return savedUser;
-    } catch (error) {
-      console.log('error while saving user');
-    }
-  }
-
-  public static getUsers(): Promise<User[]> {
-    return UserModel.find().exec();
   }
 }
 
